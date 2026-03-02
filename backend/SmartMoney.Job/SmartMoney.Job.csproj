@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Extensions.Http" Version="0.0.33" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.24" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SmartMoney.Application\SmartMoney.Application.csproj" />
+    <ProjectReference Include="..\SmartMoney.Domain\SmartMoney.Domain.csproj" />
+    <ProjectReference Include="..\SmartMoney.Infrastructure\SmartMoney.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
