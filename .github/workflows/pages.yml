@@ -52,12 +52,22 @@ jobs:
         run: dotnet run -c Release --project backend/SmartMoney.Job/SmartMoney.Job.csproj
 
       - name: Debug dist output
-        run: echo "dist:" ls -la frontend/dist echo "assets:" ls -la frontend/dist/assets || true echo "data:" ls -la frontend/dist/data || true
-
-      - name: Upload Pages artifact (frontend/dist)
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
+        shell: bash
+        run: |
+          echo "PWD:"
+          pwd
+          echo "frontend/dist:"
+          ls -la frontend/dist || true
+          echo "frontend/dist/assets:"
+          ls -la frontend/dist/assets || true
+          echo "frontend/dist/data:"
+          ls -la frontend/dist/data || true
+          echo "frontend/dist/index.html head:"
+          head -n 20 frontend/dist/index.html || true
+            - name: Upload Pages artifact (frontend/dist)
+              uses: actions/upload-pages-artifact@v3
+              with:
+                path: frontend/dist
 
   deploy:
     needs: build
