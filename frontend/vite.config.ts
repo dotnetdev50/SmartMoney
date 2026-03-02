@@ -10,6 +10,7 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  base:"/smartmoney/",
   server: {
     port: 5174,
     strictPort: true,
