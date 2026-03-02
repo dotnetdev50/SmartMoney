@@ -1,6 +1,34 @@
 //Api calls are now mocked by static JSON files in the public/data directory. 
 // The types below are not currently used, but could be helpful for future development 
 // when we switch back to real API calls.
+export type ParticipantDto = {
+  name: string;
+  bias: number;
+  label?: string; // optional for JSON mode
+};
+
+export type MarketTodayResponse = {
+  index: string;
+  date: string;
+  final_score: number;
+  regime: string;
+  shock_score?: number;
+  participants: ParticipantDto[];
+  explanation?: string;
+
+  // Optional if you keep the old API contract too
+  final_Score?: number;
+  bias_Label?: string;
+  strength?: string;
+  final_score_raw?: number;
+};
+
+export type MarketHistoryPoint = {
+  date: string;
+  final_score: number;
+  regime: string;
+};
+
 const JSON_BASE = import.meta.env.VITE_JSON_BASE_URL ?? "/data";
 
 async function jsonGet<T>(file: string): Promise<T> {
@@ -10,10 +38,9 @@ async function jsonGet<T>(file: string): Promise<T> {
 }
 
 export const api = {
-  marketToday: () => jsonGet<any>("market_today.json"),
-  marketHistory: () => jsonGet<any>("market_history_30.json"),
+  marketToday: () => jsonGet<MarketTodayResponse>("market_today.json"),
+  marketHistory: () => jsonGet<MarketHistoryPoint[]>("market_history_30.json"),
 };
-
 
 // export type ParticipantDto = {
 //   name: string;
