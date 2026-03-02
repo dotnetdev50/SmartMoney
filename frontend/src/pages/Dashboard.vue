@@ -61,7 +61,7 @@ const regimeBadgeClass = computed(() => {
 
 const shockBadgeClass = computed(() => {
   if (!today.value) return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700";
-  const v = today.value.shock_Score;
+  const v = today.value.today.shock_score ?? 0;
   if (v >= 25) return "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-500/15 dark:text-orange-300 dark:border-orange-500/30";
   if (v >= 10) return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30";
   return "bg-green-100 text-green-800 border-green-200 dark:bg-green-500/15 dark:text-green-300 dark:border-green-500/30";
@@ -265,7 +265,7 @@ const points = computed(() => {
       <section v-if="!loading && today" class="dashboard-kpi-grid grid shrink-0 grid-cols-2 gap-2 lg:grid-cols-4">
         <article class="dashboard-card rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:min-h-[92px]">
           <p class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">Final Score</p>
-          <p :class="['mt-1 text-2xl font-bold leading-none', scoreColorClass]">{{ fmtScore(today.final_Score) }}</p>
+          <p :class="['mt-1 text-2xl font-bold leading-none', scoreColorClass]">{{ fmtScore(today.final_score) }}</p>
           <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ today.strength }} {{ today.bias_Label }}</p>
         </article>
 
@@ -305,7 +305,7 @@ const points = computed(() => {
               <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Headline Signal</p>
               <div class="mt-1.5 flex flex-wrap items-end gap-2">
                 <div :class="['text-4xl font-bold leading-none', scoreColorClass]">
-                  {{ fmtScore(today.final_Score) }}
+                  {{ fmtScore(today.final_score) }}
                 </div>
                 <span
                   :class="['inline-flex rounded-full border px-2.5 py-0.5 text-sm font-semibold', scoreBadgeClass]"
@@ -318,7 +318,7 @@ const points = computed(() => {
                   Regime: {{ today.regime }}
                 </span>
                 <span :class="['rounded-full border px-2 py-0.5 text-xs font-semibold', shockBadgeClass]">
-                  Shock Score: {{ fmtScore(today.shock_Score) }}
+                  Shock Score: {{ fmtScore(today.today.shock_score ?? 0) }}
                 </span>
               </div>
 
@@ -333,7 +333,7 @@ const points = computed(() => {
                   <div
                     :class="[
                       'absolute top-0 h-full rounded-full',
-                      today.final_Score >= 0 ? 'left-1/2 bg-green-600' : 'right-1/2 bg-red-600'
+                      today.final_score >= 0 ? 'left-1/2 bg-green-600' : 'right-1/2 bg-red-600'
                     ]"
                     :style="{ width: scoreMeterWidth }"
                   ></div>
