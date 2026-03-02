@@ -49,7 +49,9 @@ jobs:
           dotnet build -c Release --no-restore
 
       - name: Run SmartMoney job (ingest + compute + export JSON)
-        run: dotnet run -c Release --project backend/SmartMoney.Job/SmartMoney.Job.csproj
+        shell: bash
+        run: |
+          dotnet run -c Release --project backend/SmartMoney.Job/SmartMoney.Job.csproj
 
       - name: Debug dist output
         shell: bash
