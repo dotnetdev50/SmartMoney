@@ -247,7 +247,7 @@ const points = computed(() => {
   <div
     class="dashboard-shell flex min-h-dvh items-stretch justify-center overflow-y-auto bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-gray-100 lg:h-dvh lg:overflow-hidden"
   >
-    <div class="flex w-full max-w-[1180px] flex-col gap-2 px-3 py-2 sm:px-4 sm:py-3 lg:h-full">
+    <div class="dashboard-inner flex w-full max-w-[1280px] flex-col gap-2 px-3 py-2 sm:px-4 sm:py-3 lg:h-full">
       <header class="flex shrink-0 flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Dashboard</p>
@@ -571,6 +571,31 @@ const points = computed(() => {
 
   .dashboard-shell .text-xs {
     line-height: 1.1;
+  }
+}
+
+/* Tall screens (≥960px height): switch to scrollable layout with capped card heights */
+@media (min-width: 1024px) and (min-height: 960px) {
+  .dashboard-shell {
+    height: auto;
+    overflow-y: auto;
+    align-items: flex-start;
+  }
+
+  .dashboard-inner {
+    height: auto;
+  }
+
+  .dashboard-main-grid {
+    flex: none;
+    grid-template-rows: minmax(160px, 220px) minmax(195px, 255px) minmax(170px, 210px);
+  }
+}
+
+/* Extra-wide screens (≥1536px): expand content max-width */
+@media (min-width: 1536px) {
+  .dashboard-inner {
+    max-width: 1440px;
   }
 }
 </style>
