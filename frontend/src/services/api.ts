@@ -16,6 +16,10 @@ export type MarketTodayResponse = {
   participants: ParticipantDto[];
   explanation?: string;
 
+  // PCR and VIX (added for PCR feature)
+  pcr?: number | null;
+  vix?: number | null;
+
   // Optional if you keep the old API contract too
   final_Score?: number;
   bias_Label?: string;

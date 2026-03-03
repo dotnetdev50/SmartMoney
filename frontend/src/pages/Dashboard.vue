@@ -169,6 +169,30 @@ function fmtScore(n: number) {
   return (Math.round(n * 10) / 10).toFixed(1);
 }
 
+function fmtPcr(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return v.toFixed(2);
+}
+
+function fmtVix(v: number | null | undefined): string {
+  if (v == null) return "—";
+  return v.toFixed(2);
+}
+
+function pcrLabel(v: number | null | undefined): string {
+  if (v == null) return "";
+  if (v >= 1.3) return "Bullish";
+  if (v >= 0.8) return "Neutral";
+  return "Bearish";
+}
+
+function pcrLabelClass(v: number | null | undefined): string {
+  if (v == null) return "text-gray-500 dark:text-gray-400";
+  if (v >= 1.3) return "text-green-700 dark:text-green-400";
+  if (v >= 0.8) return "text-gray-600 dark:text-gray-300";
+  return "text-red-700 dark:text-red-400";
+}
+
 function participantToneClass(value: number) {
   if (value > 0) return "text-green-700 dark:text-green-400";
   if (value < 0) return "text-red-700 dark:text-red-400";
@@ -429,6 +453,15 @@ const points = computed(() => {
                       </span>
                     </dd>
                   </div>
+                  <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400">PCR (NIFTY)</dt>
+                    <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                      {{ fmtPcr(today.pcr) }}
+                      <span v-if="today.pcr != null" :class="['ml-1 text-xs font-medium', pcrLabelClass(today.pcr)]">
+                        {{ pcrLabel(today.pcr) }}
+                      </span>
+                    </dd>
+                  </div>
                 </div>
 
                 <div class="space-y-2">
@@ -439,6 +472,10 @@ const points = computed(() => {
                   <div>
                     <dt class="text-xs text-gray-500 dark:text-gray-400">As Of Date</dt>
                     <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ asOfDate }}</dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400">India VIX</dt>
+                    <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ fmtVix(today.vix) }}</dd>
                   </div>
                 </div>
               </dl>
