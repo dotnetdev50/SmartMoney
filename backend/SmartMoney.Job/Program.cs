@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SmartMoney.Application.Options;
 using SmartMoney.Application.Services;
 using SmartMoney.Infrastructure.Persistence;
+using SmartMoney.Job.Export;
 using System.Text.Json;
 
 static DateTimeOffset ToIst(DateTimeOffset utc) => utc.ToOffset(TimeSpan.FromHours(5.5));
@@ -98,34 +99,52 @@ using (var scope = sp.CreateScope())
         .OrderBy(x => x.Participant)
         .ToListAsync();
 
-    // Shape must match your Vue expectations.
-    // If your API response differs, align fields here.
-    var marketToday = new
-    {
-        index = "NIFTY",
-        date = date.ToString("yyyy-MM-dd"),
-        final_score = latest.FinalScore,
-        regime = latest.Regime.ToString().ToUpperInvariant(),
-        shock_score = latest.ShockScore,
-        participants = metrics.Select(m => new
+    var participants = metrics
+        .Select(m =>
         {
-            name = m.Participant.ToString().ToUpperInvariant(),
-            bias = m.ParticipantBias
-        }).ToList()
-    };
+            var name = m.Participant.ToString().ToUpperInvariant();
+            var label = MarketNarrative.ParticipantLabel(m.ParticipantBias);
+            return new ParticipantDto(name, m.ParticipantBias, label);
+        })
+        .OrderBy(p => p.name)
+        .ToList();
+
+    var (biasLabel, strength) = MarketNarrative.ScoreLabel(latest.FinalScore);
+
+    var regime = latest.Regime.ToString().ToUpperInvariant();
+
+    var explanation = MarketNarrative.Explanation(
+        regime,
+        latest.ShockScore,
+        participants,
+        latest.FinalScore);
+
+    var marketToday = new MarketTodayDto(
+        index: "NIFTY",
+        date: date.ToString("yyyy-MM-dd"),
+        final_score: latest.FinalScore,
+        regime: regime,
+        shock_score: latest.ShockScore,
+        participants: participants,
+        bias_Label: biasLabel,
+        strength: strength,
+        explanation: explanation
+    );
 
     var fromHist = date.AddDays(-29);
-    var history = await db.MarketBiases
+    var historyRaw = await db.MarketBiases
         .AsNoTracking()
         .Where(x => x.Date >= fromHist)
         .OrderBy(x => x.Date)
-        .Select(x => new
-        {
-            date = x.Date.ToString("yyyy-MM-dd"),
-            final_score = x.FinalScore,
-            regime = x.Regime.ToString().ToUpperInvariant()
-        })
         .ToListAsync();
+
+    var history = historyRaw
+        .Select(x => new MarketHistoryPointDto(
+            date: x.Date.ToString("yyyy-MM-dd"),
+            final_score: x.FinalScore,
+            regime: x.Regime.ToString().ToUpperInvariant()
+        ))
+        .ToList();
 
     // Output folder that will be deployed (Vue dist)
     var repoRoot = FindRepoRoot();
