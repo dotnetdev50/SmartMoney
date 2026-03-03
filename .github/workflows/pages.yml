@@ -7,7 +7,7 @@ on:
     - cron: "10 16 * * 1-5"
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -52,6 +54,20 @@ jobs:
         shell: bash
         run: |
           dotnet run -c Release --project backend/SmartMoney.Job/SmartMoney.Job.csproj
+
+      - name: Commit public/data back to repo (H2 support)
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/data/ || true
+          if git diff --cached --quiet; then
+            echo "No changes to frontend/public/data — nothing to commit."
+          else
+            DATA_DATE=$(date -u '+%Y-%m-%d')
+            git commit -m "chore: update market data ${DATA_DATE} [skip ci]"
+            git push
+          fi
 
       - name: Debug dist output
         shell: bash

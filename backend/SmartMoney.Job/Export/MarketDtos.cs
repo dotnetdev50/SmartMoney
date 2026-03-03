@@ -15,7 +15,9 @@ public sealed record MarketTodayDto(
     IReadOnlyList<ParticipantDto> participants,
     string? bias_Label = null,
     string? strength = null,
-    string? explanation = null
+    string? explanation = null,
+    double? pcr = null,
+    double? vix = null
 );
 
 public sealed record MarketHistoryPointDto(
