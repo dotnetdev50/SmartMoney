@@ -1,0 +1,34 @@
+{
+  "index": "NIFTY",
+  "date": "2026-03-02",
+  "final_score": -90.3776456077584,
+  "regime": "SHOCK",
+  "shock_score": 9.872842652726955,
+  "participants": [
+    {
+      "name": "DII",
+      "bias": -7.398146716229788,
+      "label": "Strong Bearish"
+    },
+    {
+      "name": "FII",
+      "bias": -4.261025924685285,
+      "label": "Strong Bearish"
+    },
+    {
+      "name": "PRO",
+      "bias": -0.05194474078886199,
+      "label": "Neutral"
+    },
+    {
+      "name": "RETAIL",
+      "bias": 2.147024014666334,
+      "label": "Strong Bullish"
+    }
+  ],
+  "bias_Label": "Bearish",
+  "strength": "Strong",
+  "explanation": "Shock regime detected (shock=9.9). Top driver: DII (-7.40, Strong Bearish). Composite bias is bearish.",
+  "pcr": null,
+  "vix": null
+}
