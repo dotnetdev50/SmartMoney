@@ -212,25 +212,15 @@ if (!participantDataAlreadyExported)
     var jsonOptsIntermediate = new JsonSerializerOptions { WriteIndented = true };
 
     // Write participant data immediately so it is available even if PCR/VIX fetch times out.
-    var distDirIntermediate = Path.Combine(repoRoot, "frontend", "dist", "data");
-    Directory.CreateDirectory(distDirIntermediate);
-    await File.WriteAllTextAsync(Path.Combine(distDirIntermediate, "market_today.json"),
-        JsonSerializer.Serialize(marketToday, jsonOptsIntermediate));
-    await File.WriteAllTextAsync(Path.Combine(distDirIntermediate, "market_history_30.json"),
-        JsonSerializer.Serialize(history, jsonOptsIntermediate));
-    await File.WriteAllTextAsync(Path.Combine(distDirIntermediate, "job_ingest_result.json"),
-        JsonSerializer.Serialize(ingestResult, jsonOptsIntermediate));
-    await File.WriteAllTextAsync(Path.Combine(distDirIntermediate, "job_run_result.json"),
-        JsonSerializer.Serialize(runResult, jsonOptsIntermediate));
-
+    // Only write to public/data/ — the frontend build (npm run build) copies these files into
+    // dist/data/, so a single source of truth in public/ is sufficient.
     Directory.CreateDirectory(publicDataDir);
     await File.WriteAllTextAsync(publicMarketTodayPath,
         JsonSerializer.Serialize(marketToday, jsonOptsIntermediate));
     await File.WriteAllTextAsync(Path.Combine(publicDataDir, "market_history_30.json"),
         JsonSerializer.Serialize(history, jsonOptsIntermediate));
 
-    log.LogInformation("[H4] Participant data exported (PCR/VIX pending). dist: {DistDir}, public: {PubDir}",
-        distDirIntermediate, publicDataDir);
+    log.LogInformation("[H4] Participant data exported (PCR/VIX pending). public: {PubDir}", publicDataDir);
 }
 else
 {
@@ -301,26 +291,14 @@ if (pcr.HasValue || vix.HasValue)
 
     var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
 
-    var distDir = Path.Combine(repoRoot, "frontend", "dist", "data");
-    Directory.CreateDirectory(distDir);
-
-    await File.WriteAllTextAsync(Path.Combine(distDir, "market_today.json"),
-        JsonSerializer.Serialize(marketToday, jsonOpts));
-    await File.WriteAllTextAsync(Path.Combine(distDir, "market_history_30.json"),
-        JsonSerializer.Serialize(history, jsonOpts));
-    await File.WriteAllTextAsync(Path.Combine(distDir, "job_ingest_result.json"),
-        JsonSerializer.Serialize(ingestResult, jsonOpts));
-    await File.WriteAllTextAsync(Path.Combine(distDir, "job_run_result.json"),
-        JsonSerializer.Serialize(runResult, jsonOpts));
-
     Directory.CreateDirectory(publicDataDir);
     await File.WriteAllTextAsync(publicMarketTodayPath,
         JsonSerializer.Serialize(marketToday, jsonOpts));
     await File.WriteAllTextAsync(Path.Combine(publicDataDir, "market_history_30.json"),
         JsonSerializer.Serialize(history, jsonOpts));
 
-    log.LogInformation("[H3] JSON files updated with PCR={Pcr}, VIX={Vix}. dist: {DistDir}, public: {PubDir}",
-        pcr, vix, distDir, publicDataDir);
+    log.LogInformation("[H3] JSON files updated with PCR={Pcr}, VIX={Vix}. public: {PubDir}",
+        pcr, vix, publicDataDir);
 }
 else
 {
