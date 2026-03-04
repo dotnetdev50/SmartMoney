@@ -17,7 +17,10 @@ public sealed record MarketTodayDto(
     string? strength = null,
     string? explanation = null,
     double? pcr = null,
-    double? vix = null
+    double? vix = null,
+    double? pcr_volume = null,
+    double? banknifty_pcr = null,
+    double? banknifty_pcr_volume = null
 );
 
 public sealed record MarketHistoryPointDto(

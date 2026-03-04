@@ -20,6 +20,11 @@ export type MarketTodayResponse = {
   pcr?: number | null;
   vix?: number | null;
 
+  // Extended PCR fields from NSE PR file
+  pcr_volume?: number | null;
+  banknifty_pcr?: number | null;
+  banknifty_pcr_volume?: number | null;
+
   // Optional if you keep the old API contract too
   final_Score?: number;
   bias_Label?: string;

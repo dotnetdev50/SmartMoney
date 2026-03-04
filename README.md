@@ -23,25 +23,55 @@ The backend job is run by the GitHub Actions workflow (`.github/workflows/pages.
 
 ### Put-Call Ratio (PCR)
 
-PCR measures market sentiment by comparing total put open interest to call open interest for NIFTY index options.
+PCR measures market sentiment by comparing total put open interest (or volume) to call open interest (or volume) for index options.
 
-**Source:** NSE FO Bhavcopy ZIP — `https://nsearchives.nseindia.com/content/historical/DERIVATIVES/{YYYY}/{MMM}/fo{DD}{MMM}{YYYY}bhav.csv.zip`
+#### Primary Source: NSE PR File (Options Bhavcopy)
+
+The primary PCR source is the **NSE PR file** (`pr{DDMMYYYY}.zip`) which contains end-of-day options data for all F&O instruments.
+
+**Source URL pattern:** `https://nsearchives.nseindia.com/content/fo/pr{DDMMYYYY}.zip`
+
+Example: `https://nsearchives.nseindia.com/content/fo/pr04032026.zip` contains `pr04032026.csv`.
+
+**Service:** `backend/SmartMoney.Application/Services/PrPcrService.cs`
+
+The CSV inside the ZIP has the following columns:
+```
+SYMBOL, EXPIRY_DT, OPTION_TYP, STRIKE_PR, OPEN, HIGH, LOW, CLOSE, SETTLE_PR,
+CONTRACTS, VAL_INLAKH, OPEN_INT, CHG_IN_OI, TIMESTAMP
+```
+
+**Calculation:**
+- Filter rows by `SYMBOL` (e.g. `NIFTY`, `BANKNIFTY`)
+- Sum `OPEN_INT` for `OPTION_TYP = PE` → Put OI
+- Sum `OPEN_INT` for `OPTION_TYP = CE` → Call OI
+- Sum `CONTRACTS` for `OPTION_TYP = PE` → Put Volume
+- Sum `CONTRACTS` for `OPTION_TYP = CE` → Call Volume
+
+**Formulae:**
+```
+PCR (OI)     = Total Put OI     / Total Call OI
+PCR (Volume) = Total Put Volume / Total Call Volume
+```
+
+**Computed values (per symbol):**
+
+| JSON field              | Description                         |
+|-------------------------|-------------------------------------|
+| `pcr`                   | NIFTY PCR (Open Interest)           |
+| `pcr_volume`            | NIFTY PCR (Volume / Contracts)      |
+| `banknifty_pcr`         | BANKNIFTY PCR (Open Interest)       |
+| `banknifty_pcr_volume`  | BANKNIFTY PCR (Volume / Contracts)  |
+
+#### Fallback Source: FO Bhavcopy (NIFTY OI PCR only)
+
+If the PR file is unavailable (holiday, 404, or data not yet published), the service falls back to the **FO Bhavcopy ZIP** for the NIFTY OI PCR value only.
+
+**Source URL pattern:** `https://nsearchives.nseindia.com/content/historical/DERIVATIVES/{YYYY}/{MMM}/fo{DD}{MMM}{YYYY}bhav.csv.zip`
 
 **Service:** `backend/SmartMoney.Application/Services/FoBhavCopyService.cs`
 
-- Downloads the daily FO bhavcopy ZIP (e.g. `fo04MAR2026bhav.csv.zip`).
-- Extracts the CSV inside the ZIP.
-- Filters rows where `INSTRUMENT = OPTIDX` and `SYMBOL = NIFTY`.
-- Computes `PCR = Sum(OPEN_INT for PE) / Sum(OPEN_INT for CE)`.
-- Returns `null` on 404 (holiday or data not yet published) or parse errors.
-
-**PCR interpretation:**
-
-| Value    | Signal   |
-|----------|----------|
-| ≥ 1.3    | Bullish (high put buying = hedging, market likely to rise) |
-| 0.8–1.3  | Neutral  |
-| < 0.8    | Bearish (low put buying = complacency) |
+> **Note:** Always prefer the PR file (`pr{DDMMYYYY}.zip`) for PCR calculations. The FO Bhavcopy fallback only provides NIFTY OI PCR and does not cover Volume PCR or BANKNIFTY.
 
 ---
 
@@ -88,12 +118,23 @@ NSE typically publishes bhavcopy data between 6–8 PM IST; the job runs at 9:40
 
 ### Dashboard UI
 
-The dashboard (`frontend/src/pages/Dashboard.vue`) displays:
+The dashboard (`frontend/src/pages/Dashboard.vue`) displays under **Quick Facts**:
 
-- **PCR (NIFTY):** Value with Bullish / Neutral / Bearish label, or an amber **Unavailable** badge if data is null.
-- **India VIX:** Closing value, or an amber **Unavailable** badge if data is null.
+- **PCR OI (NIFTY):** NIFTY Put-Call Ratio by Open Interest with Bullish / Neutral / Bearish label.
+- **PCR Vol (NIFTY):** NIFTY Put-Call Ratio by traded volume (contracts) with Bullish / Neutral / Bearish label.
+- **PCR OI (BANKNIFTY):** BANKNIFTY Put-Call Ratio by Open Interest with Bullish / Neutral / Bearish label.
+- **PCR Vol (BANKNIFTY):** BANKNIFTY Put-Call Ratio by traded volume (contracts) with Bullish / Neutral / Bearish label.
+- **India VIX:** Closing value.
 
-The amber "Unavailable" badge appears when the backend job ran but could not obtain the value (e.g., holiday, data not yet published, or NSE API errors).
+All PCR and VIX fields show an amber **Unavailable** badge when the backend job ran but could not obtain the value (e.g., holiday, data not yet published, or NSE API errors).
+
+**PCR interpretation:**
+
+| Value    | Signal   |
+|----------|----------|
+| ≥ 1.3    | Bullish (high put buying = hedging, market likely to rise) |
+| 0.8–1.3  | Neutral  |
+| < 0.8    | Bearish (low put buying = complacency) |
 
 ---
 

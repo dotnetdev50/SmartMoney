@@ -454,7 +454,7 @@ const points = computed(() => {
                     </dd>
                   </div>
                   <div>
-                    <dt class="text-xs text-gray-500 dark:text-gray-400">PCR (NIFTY)</dt>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400" title="Put-Call Ratio by Open Interest">PCR OI (NIFTY)</dt>
                     <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
                       <template v-if="today.pcr != null">
                         {{ fmtPcr(today.pcr) }}
@@ -471,16 +471,30 @@ const points = computed(() => {
                       </span>
                     </dd>
                   </div>
+                  <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400" title="Put-Call Ratio by traded volume (contracts)">PCR Vol (NIFTY)</dt>
+                    <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                      <template v-if="today.pcr_volume != null">
+                        {{ fmtPcr(today.pcr_volume) }}
+                        <span :class="['ml-1 text-xs font-medium', pcrLabelClass(today.pcr_volume)]">
+                          {{ pcrLabel(today.pcr_volume) }}
+                        </span>
+                      </template>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                        title="PCR Volume data not yet published by NSE for today"
+                      >
+                        Unavailable
+                      </span>
+                    </dd>
+                  </div>
                 </div>
 
                 <div class="space-y-2">
                   <div>
                     <dt class="text-xs text-gray-500 dark:text-gray-400">Data Date</dt>
                     <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ signalDate }}</dd>
-                  </div>
-                  <div>
-                    <dt class="text-xs text-gray-500 dark:text-gray-400">As Of Date</dt>
-                    <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ asOfDate }}</dd>
                   </div>
                   <div>
                     <dt class="text-xs text-gray-500 dark:text-gray-400">India VIX</dt>
@@ -492,6 +506,42 @@ const points = computed(() => {
                         v-else
                         class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
                         title="VIX data not yet published by NSE for today"
+                      >
+                        Unavailable
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400" title="Put-Call Ratio by Open Interest">PCR OI (BANKNIFTY)</dt>
+                    <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                      <template v-if="today.banknifty_pcr != null">
+                        {{ fmtPcr(today.banknifty_pcr) }}
+                        <span :class="['ml-1 text-xs font-medium', pcrLabelClass(today.banknifty_pcr)]">
+                          {{ pcrLabel(today.banknifty_pcr) }}
+                        </span>
+                      </template>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                        title="BANKNIFTY PCR data not yet published by NSE for today"
+                      >
+                        Unavailable
+                      </span>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="text-xs text-gray-500 dark:text-gray-400" title="Put-Call Ratio by traded volume (contracts)">PCR Vol (BANKNIFTY)</dt>
+                    <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
+                      <template v-if="today.banknifty_pcr_volume != null">
+                        {{ fmtPcr(today.banknifty_pcr_volume) }}
+                        <span :class="['ml-1 text-xs font-medium', pcrLabelClass(today.banknifty_pcr_volume)]">
+                          {{ pcrLabel(today.banknifty_pcr_volume) }}
+                        </span>
+                      </template>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                        title="BANKNIFTY PCR Volume data not yet published by NSE for today"
                       >
                         Unavailable
                       </span>

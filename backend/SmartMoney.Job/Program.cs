@@ -61,6 +61,7 @@ services.Configure<NseJobOptions>(o =>
 services.AddHttpClient<CsvIngestionService>();
 services.AddHttpClient<FoBhavCopyService>();
 services.AddHttpClient<VixFetchService>();
+services.AddHttpClient<PrPcrService>();
 services.AddScoped<DailyPipelineService>();
 
 var sp = services.BuildServiceProvider();
@@ -248,17 +249,35 @@ int maxPcrVixRetries = jobOpts.PcrVixMaxRetries;
 int retryDelayMs = jobOpts.PcrVixRetryMinutes * 60 * 1000;
 
 double? pcr = null;
+double? pcrVolume = null;
+double? bankniftyPcr = null;
+double? bankniftyPcrVolume = null;
 double? vix = null;
 
 using (var scope = sp.CreateScope())
 {
-    var bhavSvc = scope.ServiceProvider.GetRequiredService<FoBhavCopyService>();
-    var vixSvc = scope.ServiceProvider.GetRequiredService<VixFetchService>();
+    var prPcrSvc = scope.ServiceProvider.GetRequiredService<PrPcrService>();
+    var bhavSvc  = scope.ServiceProvider.GetRequiredService<FoBhavCopyService>();
+    var vixSvc   = scope.ServiceProvider.GetRequiredService<VixFetchService>();
 
     for (int attempt = 1; attempt <= maxPcrVixRetries; attempt++)
     {
         log.LogInformation("[H3] Fetching PCR/VIX, attempt {Attempt}/{Max}", attempt, maxPcrVixRetries);
 
+        // Primary PCR source: NSE PR file (provides OI + Volume PCR for NIFTY and BANKNIFTY)
+        if (pcr is null)
+        {
+            var prResult = await prPcrSvc.FetchPcrAsync(today, CancellationToken.None);
+            if (prResult is not null)
+            {
+                pcr                = prResult.NiftyPcrOi;
+                pcrVolume          = prResult.NiftyPcrVolume;
+                bankniftyPcr       = prResult.BankniftyPcrOi;
+                bankniftyPcrVolume = prResult.BankniftyPcrVolume;
+            }
+        }
+
+        // Fallback for NIFTY OI PCR: FO Bhavcopy (when PR file is unavailable)
         if (pcr is null)
             pcr = await bhavSvc.FetchPcrAsync(today, CancellationToken.None);
 
@@ -285,9 +304,16 @@ using (var scope = sp.CreateScope())
 }
 
 // ---- Update JSON files with PCR/VIX values (when at least one was obtained) ----
-if (pcr.HasValue || vix.HasValue)
+if (pcr.HasValue || vix.HasValue || pcrVolume.HasValue || bankniftyPcr.HasValue || bankniftyPcrVolume.HasValue)
 {
-    marketToday = marketToday with { pcr = pcr, vix = vix };
+    marketToday = marketToday with
+    {
+        pcr = pcr,
+        vix = vix,
+        pcr_volume = pcrVolume,
+        banknifty_pcr = bankniftyPcr,
+        banknifty_pcr_volume = bankniftyPcrVolume,
+    };
 
     var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
 
@@ -297,8 +323,8 @@ if (pcr.HasValue || vix.HasValue)
     await File.WriteAllTextAsync(Path.Combine(publicDataDir, "market_history_30.json"),
         JsonSerializer.Serialize(history, jsonOpts));
 
-    log.LogInformation("[H3] JSON files updated with PCR={Pcr}, VIX={Vix}. public: {PubDir}",
-        pcr, vix, publicDataDir);
+    log.LogInformation("[H3] JSON files updated with PCR={Pcr}, PCRVol={PcrVol}, BankniftyPcr={BankniftyPcr}, VIX={Vix}. public: {PubDir}",
+        pcr, pcrVolume, bankniftyPcr, vix, publicDataDir);
 }
 else
 {
