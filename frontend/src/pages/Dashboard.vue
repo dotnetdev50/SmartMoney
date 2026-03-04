@@ -456,9 +456,18 @@ const points = computed(() => {
                   <div>
                     <dt class="text-xs text-gray-500 dark:text-gray-400">PCR (NIFTY)</dt>
                     <dd class="text-sm font-semibold leading-tight text-gray-900 dark:text-gray-100">
-                      {{ fmtPcr(today.pcr) }}
-                      <span v-if="today.pcr != null" :class="['ml-1 text-xs font-medium', pcrLabelClass(today.pcr)]">
-                        {{ pcrLabel(today.pcr) }}
+                      <template v-if="today.pcr != null">
+                        {{ fmtPcr(today.pcr) }}
+                        <span :class="['ml-1 text-xs font-medium', pcrLabelClass(today.pcr)]">
+                          {{ pcrLabel(today.pcr) }}
+                        </span>
+                      </template>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                        title="PCR data not yet published by NSE for today"
+                      >
+                        Unavailable
                       </span>
                     </dd>
                   </div>
@@ -475,7 +484,18 @@ const points = computed(() => {
                   </div>
                   <div>
                     <dt class="text-xs text-gray-500 dark:text-gray-400">India VIX</dt>
-                    <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ fmtVix(today.vix) }}</dd>
+                    <dd class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      <template v-if="today.vix != null">
+                        {{ fmtVix(today.vix) }}
+                      </template>
+                      <span
+                        v-else
+                        class="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-400"
+                        title="VIX data not yet published by NSE for today"
+                      >
+                        Unavailable
+                      </span>
+                    </dd>
                   </div>
                 </div>
               </dl>
