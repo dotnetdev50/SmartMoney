@@ -9,8 +9,8 @@ public sealed class NseJobOptions
     public int ExpectedParticipantRowsPerDay { get; set; } = 4;
 
     /// <summary>Maximum number of PCR/VIX fetch attempts (H3). Default: 6 retries × 10 min = 60 min window.</summary>
-    public int PcrVixMaxRetries { get; set; } = 6;
+    public int PcrVixMaxRetries { get; set; } = 1;
 
     /// <summary>Delay in minutes between PCR/VIX fetch retries (H3).</summary>
-    public int PcrVixRetryMinutes { get; set; } = 10;
+    public int PcrVixRetryMinutes { get; set; } = 2;
 }
