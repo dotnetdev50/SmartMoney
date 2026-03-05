@@ -103,19 +103,6 @@ https://nsearchives.nseindia.com/content/indices/hist_vix_data.csv
 
 ---
 
-### Retry Logic
-
-PCR/VIX fetching is retried by the job (configured in `NseJobOptions`):
-
-| Option               | Default | Description                    |
-|----------------------|---------|-------------------------------|
-| `PcrVixMaxRetries`   | 1       | Number of fetch attempts       |
-| `PcrVixRetryMinutes` | 2       | Minutes between retries        |
-
-NSE typically publishes bhavcopy data between 6–8 PM IST; the job runs at 9:40 PM IST to allow sufficient time.
-
----
-
 ### Dashboard UI
 
 The dashboard (`frontend/src/pages/Dashboard.vue`) displays under **Quick Facts**:

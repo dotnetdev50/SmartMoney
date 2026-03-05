@@ -35,7 +35,6 @@ static async Task MainAsync()
     var services = ConfigureServices();
     var sp = services.BuildServiceProvider();
     var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("SmartMoney.Job");
-    var jobOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NseJobOptions>>().Value;
 
     log.LogInformation("[H0] IST now: {IstNow:HH:mm}. isBeforeNsePublish={Flag}. targetDate={TargetDate}",
         istNow, isBeforeNsePublish, targetDate.ToString("yyyy-MM-dd"));
@@ -59,7 +58,7 @@ static async Task MainAsync()
         sp, participantDataAlreadyExported, publicDataDir, publicMarketTodayPath, targetDate, log);
 
     await FetchAndPatchPcrVixAsync(
-        sp, marketToday, history, publicDataDir, publicMarketTodayPath, jobOpts, log);
+        sp, marketToday, history, publicDataDir, publicMarketTodayPath, log);
 
     log.LogInformation("DONE");
 }
@@ -105,8 +104,6 @@ static ServiceCollection ConfigureServices()
         o.EndAtIst = Environment.GetEnvironmentVariable("JOB_END_AT_IST") ?? o.EndAtIst;
         if (int.TryParse(Environment.GetEnvironmentVariable("JOB_RETRY_MINUTES") ?? "", out var rm)) o.RetryMinutes = rm;
         if (int.TryParse(Environment.GetEnvironmentVariable("JOB_EXPECTED_PARTICIPANT_ROWS_PER_DAY") ?? "", out var ep)) o.ExpectedParticipantRowsPerDay = ep;
-        if (int.TryParse(Environment.GetEnvironmentVariable("PCR_VIX_MAX_RETRIES") ?? "", out var mr)) o.PcrVixMaxRetries = mr;
-        if (int.TryParse(Environment.GetEnvironmentVariable("PCR_VIX_RETRY_MINUTES") ?? "", out var pr)) o.PcrVixRetryMinutes = pr;
     });
 
     services.AddHttpClient<FoBhavCopyService>();
@@ -296,14 +293,10 @@ static async Task FetchAndPatchPcrVixAsync(
     List<MarketHistoryPointDto> history,
     string publicDataDir,
     string publicMarketTodayPath,
-    NseJobOptions jobOpts,
     ILogger log)
 {
     if (!TryParseMarketTodayDate(marketToday, log, out var pcrVixDate))
         return;
-
-    int maxPcrVixRetries = jobOpts.PcrVixMaxRetries;
-    int retryDelayMs = jobOpts.PcrVixRetryMinutes * 60 * 1000;
 
     using var scope = sp.CreateScope();
     var opBhavSvc = scope.ServiceProvider.GetRequiredService<OpBhavCopyService>();
@@ -313,63 +306,29 @@ static async Task FetchAndPatchPcrVixAsync(
 
     var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
 
-    double? pcr = null, pcrVolume = null, bankniftyPcr = null, bankniftyPcrVolume = null, vix = null;
+    log.LogInformation("[H3] Fetching PCR/VIX for {Date}", pcrVixDate.ToString("yyyy-MM-dd"));
 
-    for (int attempt = 1; attempt <= maxPcrVixRetries; attempt++)
+    var pcrResult = await FetchPcrFromSourcesAsync(opBhavSvc, prPcrSvc, bhavSvc, pcrVixDate, log);
+    double? pcr = pcrResult.pcr;
+    double? pcrVolume = pcrResult.pcrVolume;
+    double? bankniftyPcr = pcrResult.bankniftyPcr;
+    double? bankniftyPcrVolume = pcrResult.bankniftyPcrVolume;
+
+    double? vix = await FetchVixFromServiceAsync(vixSvc, pcrVixDate);
+
+    bool anyData = pcr.HasValue || vix.HasValue || pcrVolume.HasValue
+                   || bankniftyPcr.HasValue || bankniftyPcrVolume.HasValue;
+    if (anyData)
     {
-        log.LogInformation("[H3] Fetching PCR/VIX for {Date}, attempt {Attempt}/{Max}",
-            pcrVixDate.ToString("yyyy-MM-dd"), attempt, maxPcrVixRetries);
-
-        if (pcr is null)
-        {
-            var pcrResult = await FetchPcrFromSourcesAsync(opBhavSvc, prPcrSvc, bhavSvc, pcrVixDate, log);
-            if (pcrResult.pcr.HasValue)
-            {
-                pcr = pcrResult.pcr;
-                pcrVolume = pcrResult.pcrVolume;
-                bankniftyPcr = pcrResult.bankniftyPcr;
-                bankniftyPcrVolume = pcrResult.bankniftyPcrVolume;
-            }
-        }
-
-        if (vix is null)
-        {
-            vix = await FetchVixFromServiceAsync(vixSvc, pcrVixDate);
-        }
-
-        bool anyData = pcr.HasValue || vix.HasValue || pcrVolume.HasValue
-                       || bankniftyPcr.HasValue || bankniftyPcrVolume.HasValue;
-        if (anyData)
-        {
-            marketToday = PatchMarketToday(marketToday, pcr, vix, pcrVolume, bankniftyPcr, bankniftyPcrVolume);
-
-            await SavePatchedJsonAsync(marketToday, history, publicDataDir, publicMarketTodayPath, jsonOpts);
-
-            log.LogInformation(
-                "[H3] JSON patched after attempt {Attempt}: PCR={Pcr}, PCRVol={PcrVol}, BNF={BnfPcr}, VIX={Vix}. public: {PubDir}",
-                attempt, pcr, pcrVolume, bankniftyPcr, vix, publicDataDir);
-        }
-
-        if (pcr.HasValue && vix.HasValue)
-        {
-            log.LogInformation("[H3] All data complete on attempt {Attempt}. PCR={Pcr}, VIX={Vix}. Done.",
-                attempt, pcr, vix);
-            break;
-        }
-
-        if (attempt < maxPcrVixRetries)
-        {
-            log.LogWarning(
-                "[H3] PCR or VIX still missing after attempt {Attempt}/{Max}. Waiting {Delay} min before next attempt.",
-                attempt, maxPcrVixRetries, retryDelayMs / 60000);
-            await Task.Delay(retryDelayMs, CancellationToken.None);
-        }
-        else
-        {
-            log.LogWarning(
-                "[H3] Stopping after {Max} attempt(s). Final: PCR={Pcr}, VIX={Vix}. Dashboard shows whatever is available.",
-                maxPcrVixRetries, pcr, vix);
-        }
+        marketToday = PatchMarketToday(marketToday, pcr, vix, pcrVolume, bankniftyPcr, bankniftyPcrVolume);
+        await SavePatchedJsonAsync(marketToday, history, publicDataDir, publicMarketTodayPath, jsonOpts);
+        log.LogInformation(
+            "[H3] JSON patched: PCR={Pcr}, PCRVol={PcrVol}, BNF={BnfPcr}, VIX={Vix}. public: {PubDir}",
+            pcr, pcrVolume, bankniftyPcr, vix, publicDataDir);
+    }
+    else
+    {
+        log.LogWarning("[H3] No PCR/VIX data available for {Date}. Dashboard shows whatever is available.", pcrVixDate.ToString("yyyy-MM-dd"));
     }
 }
 
