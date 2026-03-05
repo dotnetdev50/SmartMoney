@@ -13,7 +13,21 @@ static DateTimeOffset ToIst(DateTimeOffset utc) => utc.ToOffset(TimeSpan.FromHou
 var istNow = ToIst(DateTimeOffset.UtcNow);
 var today = istNow.Date; // calendar date in IST
 
-// H1: Skip weekends
+// H0: Before 8 PM IST, NSE data for today is not yet published.
+// Target the previous trading day so we process real, available data.
+const int NsePublishHourIst = 20; // NSE publishes end-of-day data at ~8:00 PM IST
+bool isBeforeNsePublish = istNow.Hour < NsePublishHourIst;
+var targetDate = isBeforeNsePublish ? today.AddDays(-1) : today;
+
+// If targetDate rolled back to a weekend, roll back further to Friday
+while (targetDate.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+    targetDate = targetDate.AddDays(-1);
+
+// Console.WriteLine is used here because the DI logger is not yet available at this point.
+Console.WriteLine($"[H0] IST now: {istNow:HH:mm}. isBeforeNsePublish={isBeforeNsePublish}. targetDate={targetDate:yyyy-MM-dd}");
+
+// H1: Skip weekends – if today is a weekend AND time is >= 8 PM, there is no trading data.
+// (The pre-8 PM case is already handled by H0 rolling back targetDate past weekends.)
 if (today.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
 {
     Console.WriteLine($"[H1] Today ({today:yyyy-MM-dd}, {today.DayOfWeek}) is a weekend. Skipping job.");
@@ -21,7 +35,7 @@ if (today.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
 }
 
 // Working range for ingest (last 90 days → ensures enough history for 20-day window)
-var to = today;
+var to = targetDate;
 var from = to.AddDays(-90);
 
 // ---- DI container ----
@@ -71,6 +85,9 @@ var sp = services.BuildServiceProvider();
 var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("SmartMoney.Job");
 var jobOpts = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<NseJobOptions>>().Value;
 
+log.LogInformation("[H0] IST now: {IstNow:HH:mm}. isBeforeNsePublish={Flag}. targetDate={TargetDate}",
+    istNow, isBeforeNsePublish, targetDate.ToString("yyyy-MM-dd"));
+
 // ---- Migrate DB ----
 using (var scope = sp.CreateScope())
 {
@@ -78,12 +95,12 @@ using (var scope = sp.CreateScope())
     await db.Database.MigrateAsync();
 }
 
-// ---- H2: Skip if today's data is already exported with PCR and VIX present ----
+// ---- H2: Skip if target date's data is already exported with PCR and VIX present ----
 var repoRoot = FindRepoRoot();
 var publicDataDir = Path.Combine(repoRoot, "frontend", "public", "data");
 var publicMarketTodayPath = Path.Combine(publicDataDir, "market_today.json");
 
-// Track whether participant data was already written in a prior run today
+// Track whether participant data was already written in a prior run for targetDate
 bool participantDataAlreadyExported = false;
 
 if (File.Exists(publicMarketTodayPath))
@@ -93,21 +110,26 @@ if (File.Exists(publicMarketTodayPath))
         var existingJson = await File.ReadAllTextAsync(publicMarketTodayPath);
         var existing = JsonSerializer.Deserialize<JsonElement>(existingJson);
         if (existing.TryGetProperty("date", out var dateEl) &&
-            dateEl.GetString() == today.ToString("yyyy-MM-dd"))
+            dateEl.GetString() == targetDate.ToString("yyyy-MM-dd"))
         {
             bool hasPcr = existing.TryGetProperty("pcr", out var pcrEl) && pcrEl.ValueKind != JsonValueKind.Null;
             bool hasVix = existing.TryGetProperty("vix", out var vixEl) && vixEl.ValueKind != JsonValueKind.Null;
 
             if (hasPcr && hasVix)
             {
-                log.LogInformation("[H2] market_today.json already contains today's complete data with PCR and VIX ({Date}). Skipping job.", today.ToString("yyyy-MM-dd"));
+                log.LogInformation("[H2] market_today.json already contains complete data with PCR and VIX ({Date}). Skipping job.", targetDate.ToString("yyyy-MM-dd"));
                 return;
             }
 
             // Participant data is present but PCR/VIX are still missing — skip re-ingestion and
             // only retry the PCR/VIX fetch so we can fill in the missing values.
             participantDataAlreadyExported = true;
-            log.LogInformation("[H2] market_today.json has today's participant data but PCR/VIX are missing ({Date}). Skipping ingestion; will retry PCR/VIX fetch.", today.ToString("yyyy-MM-dd"));
+            log.LogInformation("[H2] market_today.json has participant data but PCR/VIX are missing ({Date}). Skipping ingestion; will retry PCR/VIX fetch.", targetDate.ToString("yyyy-MM-dd"));
+        }
+        else
+        {
+            // Existing JSON is for a different date than targetDate — perform a full run for targetDate.
+            log.LogInformation("[H2] market_today.json is for a different date than targetDate ({TargetDate}). Proceeding with full run.", targetDate.ToString("yyyy-MM-dd"));
         }
     }
     catch (Exception ex)
@@ -157,10 +179,10 @@ if (!participantDataAlreadyExported)
 
     var exportDate = latest.Date;
 
-    if (exportDate != today)
+    if (exportDate != targetDate)
     {
-        log.LogWarning("[H4] Today's data ({Today}) not available. Falling back to last available: {ExportDate}.",
-            today.ToString("yyyy-MM-dd"), exportDate.ToString("yyyy-MM-dd"));
+        log.LogWarning("[H4] targetDate's data ({TargetDate}) not available. Falling back to last available: {ExportDate}.",
+            targetDate.ToString("yyyy-MM-dd"), exportDate.ToString("yyyy-MM-dd"));
     }
 
     var metrics = await db.ParticipantMetrics
