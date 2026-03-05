@@ -30,7 +30,7 @@
   "strength": "Strong",
   "explanation": "Shock regime detected (shock=4.8). Top driver: FII (-4.77, Strong Bearish). Composite bias is bearish.",
   "pcr": null,
-  "vix": null,
+  "vix": 21.14,
   "pcr_volume": null,
   "banknifty_pcr": null,
   "banknifty_pcr_volume": null
