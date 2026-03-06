@@ -3,11 +3,13 @@ name: Build Bias + Deploy Pages
 on:
   workflow_dispatch:
   schedule:
-    # Run 1: 8:30 PM IST = 15:00 UTC  (initial attempt — NSE data may already be published)
+    # Run 0: 9:30 AM IST = 04:00 UTC  (morning refresh — previous day's participant OI now published by NSE)
+    - cron: "00 4 * * 1-5"
+    # Run 1: 8:30 PM IST = 15:00 UTC  (evening refresh — PCR/VIX published; participant OI for yesterday still available)
     - cron: "00 15 * * 1-5"
-    # Run 2: 9:00 PM IST = 15:30 UTC  (retry if PCR/VIX not yet published in Run 1)
+    # Run 2: 9:00 PM IST = 15:30 UTC  (retry if PCR/VIX not yet available in Run 1)
     - cron: "30 15 * * 1-5"
-    # Run 3: 9:30 PM IST = 16:00 UTC  (final retry — NSE always publishes by this time)
+    # Run 3: 9:30 PM IST = 16:00 UTC  (final retry — NSE always publishes bhavcopy by this time)
     - cron: "00 16 * * 1-5"
 
 permissions:
@@ -56,6 +58,7 @@ jobs:
           dotnet run -c Release --project backend/SmartMoney.Job/SmartMoney.Job.csproj
 
       - name: Commit public/data back to repo (H2 support)
+        if: ${{ always() }}
         shell: bash
         run: |
           git config user.name "github-actions[bot]"

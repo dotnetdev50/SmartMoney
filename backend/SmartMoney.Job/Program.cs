@@ -17,11 +17,11 @@ static async Task MainAsync()
     var istNow = ToIst(DateTimeOffset.UtcNow);
     var today = istNow.Date;
 
-    const int NsePublishHourIst = 20;
-    bool isBeforeNsePublish = istNow.Hour < NsePublishHourIst;
-    var targetDate = GetTargetDate(today, isBeforeNsePublish);
+    // NSE participant OI (fao_participant_oi_*.csv) is published on D+1, not D.
+    // Always target the previous trading day to guarantee data availability.
+    var targetDate = GetTargetDate(today);
 
-    Console.WriteLine($"[H0] IST now: {istNow:HH:mm}. isBeforeNsePublish={isBeforeNsePublish}. targetDate={targetDate:yyyy-MM-dd}");
+    Console.WriteLine($"[H0] IST now: {istNow:HH:mm}. targetDate={targetDate:yyyy-MM-dd}");
 
     if (IsWeekend(today))
     {
@@ -36,8 +36,8 @@ static async Task MainAsync()
     var sp = services.BuildServiceProvider();
     var log = sp.GetRequiredService<ILoggerFactory>().CreateLogger("SmartMoney.Job");
 
-    log.LogInformation("[H0] IST now: {IstNow:HH:mm}. isBeforeNsePublish={Flag}. targetDate={TargetDate}",
-        istNow, isBeforeNsePublish, targetDate.ToString("yyyy-MM-dd"));
+    log.LogInformation("[H0] IST now: {IstNow:HH:mm}. targetDate={TargetDate}",
+        istNow, targetDate.ToString("yyyy-MM-dd"));
 
     await MigrateDbAsync(sp);
 
@@ -63,9 +63,11 @@ static async Task MainAsync()
     log.LogInformation("DONE");
 }
 
-static DateTime GetTargetDate(DateTime today, bool isBeforeNsePublish)
+static DateTime GetTargetDate(DateTime today)
 {
-    var targetDate = isBeforeNsePublish ? today.AddDays(-1) : today;
+    // NSE participant OI data for day N is published on day N+1 (next business day).
+    // Always target the previous trading day so data is guaranteed to be available.
+    var targetDate = today.AddDays(-1);
     while (IsWeekend(targetDate))
         targetDate = targetDate.AddDays(-1);
     return targetDate;
