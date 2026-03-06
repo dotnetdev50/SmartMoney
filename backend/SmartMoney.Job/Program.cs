@@ -347,7 +347,13 @@ namespace SmartMoney.Job
             var vixSvc = scope.ServiceProvider.GetRequiredService<VixFetchService>();
             var jsonOpts = new JsonSerializerOptions { WriteIndented = true };
 
-            double? pcr = null, pcrVolume = null, bankniftyPcr = null, bankniftyPcrVolume = null, vix = null;
+            // Seed from the existing JSON so we never overwrite a successfully-fetched value
+            // with null just because a subsequent run cannot reach NSE (e.g. morning 403/404).
+            double? pcr = marketToday.pcr,
+                    pcrVolume = marketToday.pcr_volume,
+                    bankniftyPcr = marketToday.banknifty_pcr,
+                    bankniftyPcrVolume = marketToday.banknifty_pcr_volume,
+                    vix = marketToday.vix;
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
