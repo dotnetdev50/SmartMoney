@@ -29,9 +29,9 @@
   "bias_Label": "Bearish",
   "strength": "Moderate",
   "explanation": "Shock regime detected (shock=4.0). Top driver: FII (-4.28, Strong Bearish). Composite bias is bearish.",
-  "pcr": null,
-  "vix": 17.86,
-  "pcr_volume": null,
-  "banknifty_pcr": null,
-  "banknifty_pcr_volume": null
+  "pcr": 1.0149,
+  "vix": null,
+  "pcr_volume": 0.7997,
+  "banknifty_pcr": 0.9192,
+  "banknifty_pcr_volume": 0.8622
 }
