@@ -72,6 +72,15 @@ jobs:
             git push
           fi
 
+      - name: Validate data JSON files
+        shell: bash
+        run: |
+          python3 -m json.tool frontend/public/data/market_today.json > /dev/null \
+            || { echo "ERROR: market_today.json is not valid JSON"; exit 1; }
+          python3 -m json.tool frontend/public/data/market_history_30.json > /dev/null \
+            || { echo "ERROR: market_history_30.json is not valid JSON"; exit 1; }
+          echo "JSON validation passed"
+
       - name: Build frontend
         working-directory: frontend
         run: npm run build
