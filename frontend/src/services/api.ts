@@ -7,6 +7,14 @@ export type ParticipantDto = {
   label?: string; // optional for JSON mode
 };
 
+export type ParticipantActivityRowDto = {
+  name: string;
+  futures_net: number;
+  calls_net: number;
+  puts_net: number;
+  futures_pct?: number | null;
+  calls_pct?: number | null;
+  puts_pct?: number | null;
 export type ParticipantActivityRow = {
   participant: string;   // "FII" | "DII"
   instrument: string;    // "Futures" | "Calls" | "Puts"
@@ -32,6 +40,8 @@ export type MarketTodayResponse = {
   banknifty_pcr?: number | null;
   banknifty_pcr_volume?: number | null;
 
+  // Participant OI activity (raw net positions + % changes vs previous day)
+  participant_activity?: ParticipantActivityRowDto[] | null;
   // Participant activity: FII/DII Futures/Calls/Puts net OI changes
   participant_activity?: ParticipantActivityRow[] | null;
 

@@ -248,6 +248,7 @@ namespace SmartMoney.Job
                 var regime = latest.Regime.ToString().ToUpperInvariant();
                 var explanation = MarketNarrative.Explanation(regime, latest.ShockScore, participants, latest.FinalScore);
 
+                var participantActivity = await ComputeParticipantActivityAsync(db, exportDate, log);
                 // Build participant activity rows (FII + DII, Futures/Calls/Puts, net OI change + % vs yesterday)
                 var activityParticipants = new[] { ParticipantType.FII, ParticipantType.DII };
 
@@ -313,6 +314,7 @@ namespace SmartMoney.Job
                     explanation: explanation,
                     pcr: null,
                     vix: null,
+                    participant_activity: participantActivity
                     participant_activity: activityRows
                 );
 
@@ -349,6 +351,17 @@ namespace SmartMoney.Job
                     ?? throw new InvalidOperationException(
                         $"Failed to deserialize existing market_today.json from {publicMarketTodayPath}.");
 
+                // Backfill participant_activity if it is absent in an older JSON export
+                if (marketToday.participant_activity is null
+                    && TryParseDateExact(marketToday.date, out var existingDate))
+                {
+                    using var scope = sp.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<SmartMoneyDbContext>();
+                    var participantActivity = await ComputeParticipantActivityAsync(db, existingDate, log);
+                    marketToday = marketToday with { participant_activity = participantActivity };
+                    log.LogInformation("[H4] Backfilled participant_activity for {Date}.", marketToday.date);
+                }
+
                 var publicHistPath = Path.Combine(publicDataDir, "market_history_30.json");
                 if (File.Exists(publicHistPath))
                 {
@@ -362,6 +375,79 @@ namespace SmartMoney.Job
             }
 
             return (marketToday, history);
+        }
+
+        private static async Task<IReadOnlyList<ParticipantActivityRowDto>> ComputeParticipantActivityAsync(
+            SmartMoneyDbContext db, DateTime date, ILogger log)
+        {
+            var todayRaw = await db.ParticipantRawData
+                .AsNoTracking()
+                .Where(x => x.Date == date)
+                .ToListAsync();
+
+            if (todayRaw.Count == 0)
+            {
+                log.LogWarning("[H4] No ParticipantRawData found for {Date}. participant_activity will be empty.", date.ToString("yyyy-MM-dd"));
+                return [];
+            }
+
+            var participantTypes = todayRaw.Select(x => x.Participant).Distinct().ToList();
+
+            var yesterdayRaw = await db.ParticipantRawData
+                .AsNoTracking()
+                .Where(x => x.Date < date && participantTypes.Contains(x.Participant))
+                .GroupBy(x => x.Participant)
+                .Select(g => g.OrderByDescending(x => x.Date).First())
+                .ToListAsync();
+
+            var yesterdayMap = yesterdayRaw.ToDictionary(x => x.Participant);
+
+            // Participant order: FII, DII, PRO, RETAIL (Client)
+            var order = new[] { "FII", "DII", "PRO", "RETAIL" };
+
+            var rows = todayRaw
+                .Select(r =>
+                {
+                    // Net long positions:
+                    //   futures_net = Col B - Col C = FutLong - FutShort = FuturesNet
+                    //   calls_net   = Col F - Col H = CallLong - CallShort = -(CallOiChange)
+                    //   puts_net    = Col G - Col I = PutLong  - PutShort  = -(PutOiChange)
+                    var futuresNet = r.FuturesNet;
+                    var callsNet = -r.CallOiChange;
+                    var putsNet = -r.PutOiChange;
+
+                    double? futuresPct = null;
+                    double? callsPct = null;
+                    double? putsPct = null;
+
+                    if (yesterdayMap.TryGetValue(r.Participant, out var prev))
+                    {
+                        var prevFutures = prev.FuturesNet;
+                        var prevCalls = -prev.CallOiChange;
+                        var prevPuts = -prev.PutOiChange;
+
+                        if (Math.Abs(prevFutures) > 1e-10)
+                            futuresPct = Math.Round((futuresNet - prevFutures) / Math.Abs(prevFutures) * 100.0, 2);
+                        if (Math.Abs(prevCalls) > 1e-10)
+                            callsPct = Math.Round((callsNet - prevCalls) / Math.Abs(prevCalls) * 100.0, 2);
+                        if (Math.Abs(prevPuts) > 1e-10)
+                            putsPct = Math.Round((putsNet - prevPuts) / Math.Abs(prevPuts) * 100.0, 2);
+                    }
+
+                    return new ParticipantActivityRowDto(
+                        name: r.Participant.ToString().ToUpperInvariant(),
+                        futures_net: futuresNet,
+                        calls_net: callsNet,
+                        puts_net: putsNet,
+                        futures_pct: futuresPct,
+                        calls_pct: callsPct,
+                        puts_pct: putsPct
+                    );
+                })
+                .OrderBy(r => Array.IndexOf(order, r.name) is var idx && idx >= 0 ? idx : 99)
+                .ToList();
+
+            return rows;
         }
 
         private static async Task FetchAndPatchPcrVixAsync(
