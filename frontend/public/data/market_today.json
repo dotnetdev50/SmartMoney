@@ -33,5 +33,13 @@
   "vix": null,
   "pcr_volume": 1.0008,
   "banknifty_pcr": 0.8189,
-  "banknifty_pcr_volume": 1.1933
+  "banknifty_pcr_volume": 1.1933,
+  "participant_activity": [
+    { "participant": "FII", "instrument": "Futures", "net_oi_change": -152300, "vs_yesterday_pct": -12.45 },
+    { "participant": "FII", "instrument": "Calls",   "net_oi_change":  48900,  "vs_yesterday_pct":   8.32 },
+    { "participant": "FII", "instrument": "Puts",    "net_oi_change": -76200,  "vs_yesterday_pct":  -5.67 },
+    { "participant": "DII", "instrument": "Futures", "net_oi_change":  83200,  "vs_yesterday_pct":   3.12 },
+    { "participant": "DII", "instrument": "Calls",   "net_oi_change":  21300,  "vs_yesterday_pct":  -2.45 },
+    { "participant": "DII", "instrument": "Puts",    "net_oi_change": -31500,  "vs_yesterday_pct":  -4.18 }
+  ]
 }

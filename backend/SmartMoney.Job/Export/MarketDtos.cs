@@ -6,6 +6,13 @@ public sealed record ParticipantDto(
     string? label = null
 );
 
+public sealed record ParticipantActivityRowDto(
+    string participant,
+    string instrument,
+    double net_oi_change,
+    double? vs_yesterday_pct = null
+);
+
 public sealed record MarketTodayDto(
     string index,
     string date,
@@ -20,7 +27,8 @@ public sealed record MarketTodayDto(
     double? vix = null,
     double? pcr_volume = null,
     double? banknifty_pcr = null,
-    double? banknifty_pcr_volume = null
+    double? banknifty_pcr_volume = null,
+    IReadOnlyList<ParticipantActivityRowDto>? participant_activity = null
 );
 
 public sealed record MarketHistoryPointDto(

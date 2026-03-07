@@ -7,6 +7,13 @@ export type ParticipantDto = {
   label?: string; // optional for JSON mode
 };
 
+export type ParticipantActivityRow = {
+  participant: string;   // "FII" | "DII"
+  instrument: string;    // "Futures" | "Calls" | "Puts"
+  net_oi_change: number;
+  vs_yesterday_pct?: number | null;
+};
+
 export type MarketTodayResponse = {
   index: string;
   date: string;
@@ -24,6 +31,9 @@ export type MarketTodayResponse = {
   pcr_volume?: number | null;
   banknifty_pcr?: number | null;
   banknifty_pcr_volume?: number | null;
+
+  // Participant activity: FII/DII Futures/Calls/Puts net OI changes
+  participant_activity?: ParticipantActivityRow[] | null;
 
   // Optional if you keep the old API contract too
   final_Score?: number;

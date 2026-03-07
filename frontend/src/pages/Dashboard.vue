@@ -210,6 +210,24 @@ function participantBarWidth(value: number) {
   return `${width}%`;
 }
 
+function oiChangeClass(value: number) {
+  if (value > 0) return "text-green-700 dark:text-green-400";
+  if (value < 0) return "text-red-700 dark:text-red-400";
+  return "text-gray-600 dark:text-gray-300";
+}
+
+function fmtOiChange(n: number): string {
+  const abs = Math.abs(n);
+  const sign = n >= 0 ? "+" : "-";
+  if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}K`;
+  return `${sign}${abs.toFixed(0)}`;
+}
+
+function fmtPct(n: number): string {
+  const sign = n >= 0 ? "+" : "";
+  return `${sign}${n.toFixed(2)}%`;
+}
+
 const scoreMeterWidth = computed(() => {
   if (!today.value) return "0%";
   return `${Math.min(50, Math.abs(today.value.final_score) / 2)}%`;
@@ -552,58 +570,53 @@ const points = computed(() => {
             </article>
           </section>
 
-          <section class="overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:h-full lg:min-h-0">
-            <div class="mb-1.5 flex items-center justify-between">
-              <h2 class="text-base font-semibold">FII / DII / PRO / Retail</h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Standard participant view</p>
+          <section class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:h-full lg:min-h-0">
+            <div class="mb-1.5 flex shrink-0 items-center justify-between">
+              <h2 class="text-base font-semibold">Participants Activity</h2>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ signalDate }}</p>
             </div>
 
-            <div>
-              <table class="min-w-full table-fixed text-sm">
-                <colgroup>
-                  <col class="w-[26%]" />
-                  <col class="w-[18%]" />
-                  <col class="w-[28%]" />
-                  <col class="w-[28%]" />
-                </colgroup>
-                <thead class="text-left text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">
-                  <tr class="border-b border-gray-200 dark:border-gray-800">
-                    <th class="py-1 pr-3">Participant</th>
-                    <th class="py-1 pr-3 text-right">Bias</th>
-                    <th class="py-1 pr-3">Influence</th>
-                    <th class="py-1 pr-0">Label</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="p in participantRows"
-                    :key="p.key"
-                    class="border-b border-gray-100 last:border-b-0 dark:border-gray-800"
-                  >
-                    <td class="py-1 pr-3 font-medium text-gray-900 dark:text-gray-100">{{ p.name }}</td>
-                    <td :class="['py-1 pr-3 text-right font-semibold', participantToneClass(p.bias)]">
-                      {{ p.hasData ? fmtScore(p.bias) : '-' }}
-                    </td>
-                    <td class="py-1 pr-3">
-                      <div class="h-2 w-full max-w-28 rounded-full bg-gray-200 dark:bg-gray-800">
-                        <div
-                          :class="['h-2 rounded-full', participantBarClass(p.bias)]"
-                          :style="{ width: p.hasData ? participantBarWidth(p.bias) : '0%' }"
-                        ></div>
-                      </div>
-                    </td>
-                    <td
-                      :class="[
-                        'py-1 pr-0',
-                        p.hasData ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'
-                      ]"
+            <template v-if="today.participant_activity?.length">
+              <div class="grid min-h-0 flex-1 grid-cols-2 gap-x-4 overflow-y-auto">
+                <!-- Left panel: CHANGES (NET OI) -->
+                <div>
+                  <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Changes (Net OI)</p>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="row in today.participant_activity"
+                      :key="`left-${row.participant}-${row.instrument}`"
+                      class="flex items-baseline justify-between gap-1"
                     >
-                      {{ p.label }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                      <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }}</span>
+                      <span :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.net_oi_change)]">
+                        {{ fmtOiChange(row.net_oi_change) }}
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <!-- Right panel: VS YESTERDAY (%) -->
+                <div>
+                  <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">vs Yesterday (%)</p>
+                  <ul class="space-y-1">
+                    <li
+                      v-for="row in today.participant_activity"
+                      :key="`right-${row.participant}-${row.instrument}`"
+                      class="flex items-baseline justify-between gap-1"
+                    >
+                      <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }} Δ</span>
+                      <span
+                        v-if="row.vs_yesterday_pct != null"
+                        :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.vs_yesterday_pct)]"
+                      >
+                        {{ fmtPct(row.vs_yesterday_pct) }}
+                      </span>
+                      <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </template>
+            <p v-else class="text-xs text-gray-500 dark:text-gray-400">Participant activity data unavailable.</p>
           </section>
         </div>
 
