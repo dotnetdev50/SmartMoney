@@ -33,8 +33,6 @@
   "vix": null,
   "pcr_volume": 1.0008,
   "banknifty_pcr": 0.8189,
-  "banknifty_pcr_volume": 1.1933
-}
   "banknifty_pcr_volume": 1.1933,
   "participant_activity": [
     { "participant": "FII", "instrument": "Futures", "net_oi_change": -152300, "vs_yesterday_pct": -12.45 },

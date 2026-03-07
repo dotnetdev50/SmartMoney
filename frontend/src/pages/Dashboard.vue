@@ -624,55 +624,55 @@ const points = computed(() => {
                 </table>
               </div>
             </div>
-          </section>
 
-          <section class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:h-full lg:min-h-0">
-            <div class="mb-1.5 flex shrink-0 items-center justify-between">
-              <h2 class="text-base font-semibold">Participants Activity</h2>
-              <p class="text-xs text-gray-500 dark:text-gray-400">{{ signalDate }}</p>
-            </div>
-
-            <template v-if="today.participant_activity?.length">
-              <div class="grid min-h-0 flex-1 grid-cols-2 gap-x-4 overflow-y-auto">
-                <!-- Left panel: CHANGES (NET OI) -->
-                <div>
-                  <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Changes (Net OI)</p>
-                  <ul class="space-y-1">
-                    <li
-                      v-for="row in today.participant_activity"
-                      :key="`left-${row.participant}-${row.instrument}`"
-                      class="flex items-baseline justify-between gap-1"
-                    >
-                      <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }}</span>
-                      <span :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.net_oi_change)]">
-                        {{ fmtOiChange(row.net_oi_change) }}
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-                <!-- Right panel: VS YESTERDAY (%) -->
-                <div>
-                  <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">vs Yesterday (%)</p>
-                  <ul class="space-y-1">
-                    <li
-                      v-for="row in today.participant_activity"
-                      :key="`right-${row.participant}-${row.instrument}`"
-                      class="flex items-baseline justify-between gap-1"
-                    >
-                      <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }} Δ</span>
-                      <span
-                        v-if="row.vs_yesterday_pct != null"
-                        :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.vs_yesterday_pct)]"
-                      >
-                        {{ fmtPct(row.vs_yesterday_pct) }}
-                      </span>
-                      <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
-                    </li>
-                  </ul>
-                </div>
+            <div class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:col-span-5 lg:h-full lg:min-h-0">
+              <div class="mb-1.5 flex shrink-0 items-center justify-between">
+                <h2 class="text-base font-semibold">Participants Activity</h2>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ signalDate }}</p>
               </div>
-            </template>
-            <p v-else class="text-xs text-gray-500 dark:text-gray-400">Participant activity data unavailable.</p>
+
+              <template v-if="today.participant_activity?.length">
+                <div class="grid min-h-0 flex-1 grid-cols-2 gap-x-4 overflow-y-auto">
+                  <!-- Left panel: CHANGES (NET OI) -->
+                  <div>
+                    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Changes (Net OI)</p>
+                    <ul class="space-y-1">
+                      <li
+                        v-for="row in today.participant_activity"
+                        :key="`left-${row.participant}-${row.instrument}`"
+                        class="flex items-baseline justify-between gap-1"
+                      >
+                        <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }}</span>
+                        <span :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.net_oi_change)]">
+                          {{ fmtOiChange(row.net_oi_change) }}
+                        </span>
+                      </li>
+                    </ul>
+                  </div>
+                  <!-- Right panel: VS YESTERDAY (%) -->
+                  <div>
+                    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">vs Yesterday (%)</p>
+                    <ul class="space-y-1">
+                      <li
+                        v-for="row in today.participant_activity"
+                        :key="`right-${row.participant}-${row.instrument}`"
+                        class="flex items-baseline justify-between gap-1"
+                      >
+                        <span class="text-xs text-gray-600 dark:text-gray-300">{{ row.participant }} — {{ row.instrument }} Δ</span>
+                        <span
+                          v-if="row.vs_yesterday_pct != null"
+                          :class="['text-xs font-semibold tabular-nums', oiChangeClass(row.vs_yesterday_pct)]"
+                        >
+                          {{ fmtPct(row.vs_yesterday_pct) }}
+                        </span>
+                        <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </template>
+              <p v-else class="text-xs text-gray-500 dark:text-gray-400">Participant activity data unavailable.</p>
+            </div>
           </section>
         </div>
 
