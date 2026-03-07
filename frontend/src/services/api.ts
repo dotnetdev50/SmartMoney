@@ -15,6 +15,11 @@ export type ParticipantActivityRowDto = {
   futures_pct?: number | null;
   calls_pct?: number | null;
   puts_pct?: number | null;
+export type ParticipantActivityRow = {
+  participant: string;   // "FII" | "DII"
+  instrument: string;    // "Futures" | "Calls" | "Puts"
+  net_oi_change: number;
+  vs_yesterday_pct?: number | null;
 };
 
 export type MarketTodayResponse = {
@@ -37,6 +42,8 @@ export type MarketTodayResponse = {
 
   // Participant OI activity (raw net positions + % changes vs previous day)
   participant_activity?: ParticipantActivityRowDto[] | null;
+  // Participant activity: FII/DII Futures/Calls/Puts net OI changes
+  participant_activity?: ParticipantActivityRow[] | null;
 
   // Optional if you keep the old API contract too
   final_Score?: number;

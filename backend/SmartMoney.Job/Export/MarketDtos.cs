@@ -14,6 +14,10 @@ public sealed record ParticipantActivityRowDto(
     double? futures_pct,
     double? calls_pct,
     double? puts_pct
+    string participant,
+    string instrument,
+    double net_oi_change,
+    double? vs_yesterday_pct = null
 );
 
 public sealed record MarketTodayDto(

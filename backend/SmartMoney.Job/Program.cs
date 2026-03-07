@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using SmartMoney.Application.Options;
 using SmartMoney.Application.Services;
+using SmartMoney.Domain.Enums;
 using SmartMoney.Infrastructure.Persistence;
 using SmartMoney.Job.Export;
 using System.Text.Json;
@@ -248,6 +249,58 @@ namespace SmartMoney.Job
                 var explanation = MarketNarrative.Explanation(regime, latest.ShockScore, participants, latest.FinalScore);
 
                 var participantActivity = await ComputeParticipantActivityAsync(db, exportDate, log);
+                // Build participant activity rows (FII + DII, Futures/Calls/Puts, net OI change + % vs yesterday)
+                var activityParticipants = new[] { ParticipantType.FII, ParticipantType.DII };
+
+                var todayRaw = await db.ParticipantRawData
+                    .AsNoTracking()
+                    .Where(x => x.Date == exportDate && activityParticipants.Contains(x.Participant))
+                    .ToListAsync();
+
+                var prevRaw = await db.ParticipantRawData
+                    .AsNoTracking()
+                    .Where(x => x.Date < exportDate && activityParticipants.Contains(x.Participant))
+                    .GroupBy(x => x.Participant)
+                    .Select(g => g.OrderByDescending(x => x.Date).First())
+                    .ToListAsync();
+
+                var prevMap = prevRaw.ToDictionary(x => x.Participant, x => x);
+
+                var activityRows = new List<ParticipantActivityRowDto>();
+                var participantOrder = new[] { ParticipantType.FII, ParticipantType.DII };
+
+                foreach (var pt in participantOrder)
+                {
+                    var todayRow = todayRaw.FirstOrDefault(x => x.Participant == pt);
+                    if (todayRow is null) continue;
+
+                    prevMap.TryGetValue(pt, out var prevRow);
+                    var pName = pt.ToString().ToUpperInvariant();
+
+                    // Futures: FuturesChange is already today.FuturesNet - prev.FuturesNet
+                    var prevFutNet = prevRow?.FuturesNet ?? 0.0;
+                    var futChange = todayRow.FuturesChange;
+                    var futPct = Math.Abs(prevFutNet) > 1.0
+                        ? Math.Round(futChange / Math.Abs(prevFutNet) * 100.0, 2)
+                        : (double?)null;
+                    activityRows.Add(new ParticipantActivityRowDto(pName, "Futures", futChange, futPct));
+
+                    // Calls: CallOiChange stores today's net writing proxy (cumulative), so delta = today - prev
+                    var prevCallNet = prevRow?.CallOiChange ?? 0.0;
+                    var callChange = todayRow.CallOiChange - prevCallNet;
+                    var callPct = Math.Abs(prevCallNet) > 1.0
+                        ? Math.Round(callChange / Math.Abs(prevCallNet) * 100.0, 2)
+                        : (double?)null;
+                    activityRows.Add(new ParticipantActivityRowDto(pName, "Calls", callChange, callPct));
+
+                    // Puts: PutOiChange stores today's net writing proxy (cumulative), so delta = today - prev
+                    var prevPutNet = prevRow?.PutOiChange ?? 0.0;
+                    var putChange = todayRow.PutOiChange - prevPutNet;
+                    var putPct = Math.Abs(prevPutNet) > 1.0
+                        ? Math.Round(putChange / Math.Abs(prevPutNet) * 100.0, 2)
+                        : (double?)null;
+                    activityRows.Add(new ParticipantActivityRowDto(pName, "Puts", putChange, putPct));
+                }
 
                 marketToday = new MarketTodayDto(
                     index: "NIFTY",
@@ -262,6 +315,7 @@ namespace SmartMoney.Job
                     pcr: null,
                     vix: null,
                     participant_activity: participantActivity
+                    participant_activity: activityRows
                 );
 
                 var fromHist = exportDate.AddDays(-29);
