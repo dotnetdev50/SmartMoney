@@ -210,40 +210,11 @@ function participantBarWidth(value: number) {
   return `${width}%`;
 }
 
-const activityRows = computed(() => {
-  return today.value?.participant_activity ?? [];
-});
-
-function fmtOiNet(v: number): string {
-  if (v === 0) return "0";
-  const abs = Math.abs(v);
-  let formatted: string;
-  if (abs >= 1_000_000) {
-    formatted = (abs / 1_000_000).toFixed(2) + "M";
-  } else if (abs >= 1_000) {
-    formatted = (abs / 1_000).toFixed(1) + "K";
-  } else {
-    formatted = abs.toFixed(0);
-  }
-  return (v < 0 ? "-" : "") + formatted;
-}
-
 function fmtPct(v: number | null | undefined): string {
   if (v == null) return "—";
   return (v >= 0 ? "+" : "") + v.toFixed(2) + "%";
 }
 
-function pctClass(v: number | null | undefined): string {
-  if (v == null) return "text-gray-500 dark:text-gray-400";
-  if (v > 0) return "text-green-700 dark:text-green-400";
-  if (v < 0) return "text-red-700 dark:text-red-400";
-  return "text-gray-600 dark:text-gray-300";
-}
-
-function oiNetClass(v: number): string {
-  if (v > 0) return "text-green-700 dark:text-green-400";
-  if (v < 0) return "text-red-700 dark:text-red-400";
-  return "text-gray-700 dark:text-gray-200";
 function oiChangeClass(value: number) {
   if (value > 0) return "text-green-700 dark:text-green-400";
   if (value < 0) return "text-red-700 dark:text-red-400";
@@ -255,11 +226,6 @@ function fmtOiChange(n: number): string {
   const sign = n >= 0 ? "+" : "-";
   if (abs >= 1000) return `${sign}${(abs / 1000).toFixed(1)}K`;
   return `${sign}${abs.toFixed(0)}`;
-}
-
-function fmtPct(n: number): string {
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
 }
 
 const scoreMeterWidth = computed(() => {
@@ -658,64 +624,8 @@ const points = computed(() => {
                 </table>
               </div>
             </div>
+          </section>
 
-            <article
-              class="overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:col-span-5 lg:h-full lg:min-h-0"
-            >
-              <div class="mb-1.5 flex items-center justify-between">
-                <h2 class="text-base font-semibold">Participants Activity</h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ signalDate }}</p>
-              </div>
-
-              <template v-if="activityRows.length > 0">
-                <div class="grid grid-cols-2 gap-x-4">
-                  <div>
-                    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">Changes (Net OI)</p>
-                    <template v-for="row in activityRows" :key="'chg-' + row.name">
-                      <dl class="mb-1">
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Futures</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', oiNetClass(row.futures_net)]">{{ fmtOiNet(row.futures_net) }}</dd>
-                        </div>
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Calls</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', oiNetClass(row.calls_net)]">{{ fmtOiNet(row.calls_net) }}</dd>
-                        </div>
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Puts</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', oiNetClass(row.puts_net)]">{{ fmtOiNet(row.puts_net) }}</dd>
-                        </div>
-                      </dl>
-                    </template>
-                  </div>
-                  <div>
-                    <p class="mb-1 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">vs Yesterday (%)</p>
-                    <template v-for="row in activityRows" :key="'pct-' + row.name">
-                      <dl class="mb-1">
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Futures Δ</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', pctClass(row.futures_pct)]">{{ fmtPct(row.futures_pct) }}</dd>
-                        </div>
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Calls Δ</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', pctClass(row.calls_pct)]">{{ fmtPct(row.calls_pct) }}</dd>
-                        </div>
-                        <div>
-                          <dt class="text-xs text-gray-500 dark:text-gray-400">{{ row.name }} — Puts Δ</dt>
-                          <dd :class="['text-sm font-semibold leading-tight tabular-nums', pctClass(row.puts_pct)]">{{ fmtPct(row.puts_pct) }}</dd>
-                        </div>
-                      </dl>
-                    </template>
-                  </div>
-                </div>
-              </template>
-              <p
-                v-else
-                class="mt-2 text-xs text-gray-500 dark:text-gray-400"
-              >
-                No activity data available.
-              </p>
-            </article>
           <section class="flex flex-col overflow-hidden rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm dark:border-gray-800 dark:bg-gray-900 lg:h-full lg:min-h-0">
             <div class="mb-1.5 flex shrink-0 items-center justify-between">
               <h2 class="text-base font-semibold">Participants Activity</h2>
