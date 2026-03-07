@@ -248,8 +248,8 @@ namespace SmartMoney.Job
                 var regime = latest.Regime.ToString().ToUpperInvariant();
                 var explanation = MarketNarrative.Explanation(regime, latest.ShockScore, participants, latest.FinalScore);
 
-                // Build participant activity rows (FII + DII, Futures/Calls/Puts, net OI change + % vs yesterday)
-                var activityParticipants = new[] { ParticipantType.FII, ParticipantType.DII };
+                // Build participant activity rows (FII + DII + PRO, Futures/Calls/Puts, net OI change + % vs yesterday)
+                var activityParticipants = new[] { ParticipantType.FII, ParticipantType.DII, ParticipantType.Pro };
 
                 var todayRaw = await db.ParticipantRawData
                     .AsNoTracking()
@@ -266,7 +266,7 @@ namespace SmartMoney.Job
                 var prevMap = prevRaw.ToDictionary(x => x.Participant, x => x);
 
                 var activityRows = new List<ParticipantActivityRowDto>();
-                var participantOrder = new[] { ParticipantType.FII, ParticipantType.DII };
+                var participantOrder = new[] { ParticipantType.FII, ParticipantType.DII, ParticipantType.Pro };
 
                 foreach (var pt in participantOrder)
                 {
